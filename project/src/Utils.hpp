@@ -37,12 +37,14 @@ void InserisciTraccia(double alpha,
 
 
 
-
-
 void CercaTracce(const Fracture F1,
-                  const Fracture F2,
-                  vector<Traces>& tracesContainer);
+                 const Fracture F2,
+                 vector<Traces>& tracesContainer);
 
+
+
+void StampaTracce(vector<Traces> tracesContainer,
+                  string filepath);
 
 
 

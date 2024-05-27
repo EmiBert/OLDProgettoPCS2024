@@ -30,7 +30,7 @@ int main()
     cout<<" # Number of Fractures"<<endl;
     cout<<numeroFratture<<endl;
 
-    for(auto f: contenitoreFratture){
+/*    for(auto f: contenitoreFratture){
         cout<<"# FractureId; NumVertices"<<endl;
         cout<<f.id<<"; "<<f.NumVertices<<endl;
         for(auto x: f.coordx){
@@ -66,7 +66,9 @@ int main()
         cout<< t.Length<<";"<<endl;
     }
 
+*/
 
+    StampaTracce(contenitoreTracce,filepath);
 
 return 0;
 }

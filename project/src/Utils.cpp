@@ -297,6 +297,29 @@ void CercaTracce(const Fracture F1, const Fracture F2, vector<Traces>& tracesCon
 }
 
 
+void StampaTracce(vector<Traces> tracesContainer, string filepath){
+    // fileName = "traces_FRX_data.csv", X = numero fratture nel file considerato
+    string fileName = "traces_"+filepath.substr(4, filepath.size()-7)+"csv";
+    cout<<fileName<<endl;
+    ofstream outputTraces (fileName);
+    outputTraces << "# Number of Traces"<<endl;    //intestazione
+    outputTraces << tracesContainer.size()<<endl;
+    outputTraces << "# TraceId; FractureId1; FractureId2; X1; Y1; Z1; X2; Y2; Z2"<<endl;
+
+    for(auto& t: tracesContainer){
+        outputTraces<<t.id<<";"<<t.FractureID1<<";"<<t.FractureID2<<";";
+        outputTraces<<t.P1[0]<<";"<<t.P1[1]<<";"<<t.P1[2]<<";"<<t.P2[0]<<";"<<t.P2[1]<<";"<<t.P2[2]<<endl;
+    }
+
+    outputTraces.close();
+}
+
+
+
+
+
+
+
 
 
 
