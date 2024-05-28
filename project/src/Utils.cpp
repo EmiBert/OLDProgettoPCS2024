@@ -297,9 +297,9 @@ void CercaTracce(const Fracture F1, const Fracture F2, vector<Traces>& tracesCon
 }
 
 
-void StampaTracce(vector<Traces> tracesContainer, string filepath){
+void StampaTracce(vector<Traces> tracesContainer, int numF){
     // fileName = "traces_FRX_data.csv", X = numero fratture nel file considerato
-    string fileName = "traces_"+filepath.substr(4, filepath.size()-7)+"csv";
+    string fileName = "traces_FR"+to_string(numF)+"_data.csv";
     cout<<fileName<<endl;
     ofstream outputTraces (fileName);
     outputTraces << "# Number of Traces"<<endl;    //intestazione
@@ -316,6 +316,115 @@ void StampaTracce(vector<Traces> tracesContainer, string filepath){
 
 
 
+
+void Scambia(vector<Vector2d>& A, int i, int j){
+    Vector2d temp = A[j];
+    A[j] = A[i];
+    A[i] = temp;
+}
+
+
+int Distribuzione(vector<Vector2d>& A, int sinistra, int destra){
+    Vector2d x = A[destra];
+    int i = sinistra-1;
+    for(int j=sinistra; j<destra; j++){
+        if(A[j][1] >=x[1]){
+            i++;
+            Scambia(A,i,j);
+        }
+    }
+    Scambia(A,i+1,destra);
+    return i+1;
+}
+
+
+//    2 pre: 0≤sinistra,destra≤n−1
+void QuickSort(vector<Vector2d>& A, int sinistra, int destra){
+    if (sinistra < destra){
+        // il pivot è l'ultimo indice, "destra"
+        int rango = Distribuzione(A, sinistra, destra);
+        QuickSort(A, sinistra, rango-1);
+        QuickSort(A, rango+1, destra);
+    }
+}
+
+
+void QuickSort(vector<Vector2d>& A){
+    int sinistra = 0;
+    int destra = A.size()-1;
+    QuickSort(A, sinistra, destra);
+}
+
+
+
+
+void StampaTracceOrdinate(vector<Traces> tracesContainer, int numFracture){
+
+    // fileName = "sorted_traces_FRX_data.csv", X = numero fratture nel file considerato
+    string fileName = "sorted_traces_FR"+to_string(numFracture)+"_data.csv";
+    cout<<fileName<<endl;
+    ofstream outputSortedTraces (fileName);
+
+    for(int i=0; i<numFracture; i++){
+        // contenitori di tracce in forma breve, Vector2d: [TraceId, Length]
+        vector<Vector2d> tPassanti = {};
+        vector<Vector2d> tNonPassanti = {};
+
+        for(auto& t: tracesContainer){
+
+            if(t.FractureID1 == i){
+                Vector2d shortT = {t.id, t.Length};
+                if(t.Tips1 == true){
+                    tNonPassanti.push_back(shortT);
+                }
+                else{
+                    tPassanti.push_back(shortT);
+                }
+            }
+
+            if(t.FractureID2 == i){
+                Vector2d shortT = {t.id, t.Length};
+                if(t.Tips2 == true){
+                    tNonPassanti.push_back(shortT);
+                }
+                else{
+                    tPassanti.push_back(shortT);
+                }
+            }
+        }
+
+        //int numTraces = tPassanti.size() + tNonPassanti.size();
+
+        if(tPassanti.size() != 0){
+            QuickSort(tPassanti);
+        }
+
+        if(tNonPassanti.size() != 0){
+            QuickSort(tNonPassanti);
+        }
+
+
+        if(tPassanti.size() + tNonPassanti.size()!= 0){
+            outputSortedTraces << "# FractureId; NumTraces"<<endl;
+            outputSortedTraces << i<<";"<< tPassanti.size() + tNonPassanti.size()<<endl;
+            outputSortedTraces << "# TraceId; Tips; Length"<<endl;
+
+            if(tNonPassanti.size() !=0){
+                for(auto& t: tNonPassanti){
+                    outputSortedTraces<<t[0]<<";1;"<<t[1]<<endl;
+                }
+            }
+
+            if(tPassanti.size() !=0){
+                for(auto& t: tPassanti){
+                    outputSortedTraces<<t[0]<<";0;"<<t[1]<<endl;
+                }
+            }
+        }
+    }
+
+    outputSortedTraces.close();
+}
 
 
 

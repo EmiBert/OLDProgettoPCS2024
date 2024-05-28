@@ -12,7 +12,7 @@ int main()
 {
     vector<Fracture> contenitoreFratture;
     int numeroFratture = 0;
-    string filepath = "DFN/FR3_data.txt";
+    string filepath = "DFN/FR10_data.txt";
 
     if(!ImportaFratture(filepath, contenitoreFratture, numeroFratture)){
         return 1;
@@ -68,7 +68,8 @@ int main()
 
 */
 
-    StampaTracce(contenitoreTracce,filepath);
+    StampaTracce(contenitoreTracce,numeroFratture);
+    StampaTracceOrdinate(contenitoreTracce,numeroFratture);
 
 return 0;
 }

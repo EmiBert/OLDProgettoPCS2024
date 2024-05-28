@@ -44,7 +44,31 @@ void CercaTracce(const Fracture F1,
 
 
 void StampaTracce(vector<Traces> tracesContainer,
-                  string filepath);
+                  int numF);
+
+
+void Scambia(vector<Vector2d>& A,
+             int i,
+             int j);
+
+
+
+int Distribuzione(vector<Vector2d>& A,
+                  int sinistra,
+                  int destra);
+
+
+void QuickSort(vector<Vector2d>& A,
+               int sinistra,
+               int destra);
+
+
+
+void QuickSort(vector<Vector2d>& A);
+
+
+void StampaTracceOrdinate(vector<Traces> tracesContainer,
+                          int numFracture);
 
 
 
