@@ -34,6 +34,28 @@ struct Traces
 };
 
 
+struct edges
+{
+    Vector3d P = {}; ///< P = origine del segmento
+    Vector3d t = {}; ///< t = tangente del segmento
+    vector<double> intersection = {}; ///< intersection = insiemi di valori apparteneti a (0,1)
+                                      ///< in cui il segnmento è stato tagliato
+};
 
+
+
+struct mesh0D
+{
+    Vector3d coord = {}; ///< coord = coordinate del nodo
+    vector<int> idlati = {}; ///< codici identificativi dei lati aventi tale nodo come estremo
+};
+
+
+struct mesh1D
+{
+    int idlato = -1; ///< idlato = codice identificativo del lato
+    int idnode1 = -1; ///< idnode1 = codice idetificativo del primo estremo
+    int idnode2 = -1; ///< idnode1 = codice idetificativo del primo estremo
+};
 
 }

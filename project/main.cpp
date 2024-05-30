@@ -69,7 +69,33 @@ int main()
 */
 
     StampaTracce(contenitoreTracce,numeroFratture);
-    StampaTracceOrdinate(contenitoreTracce,numeroFratture);
+
+    map<int, vector<int>> traccePassantiOrdinate = {};
+    map<int, vector<int>> tracceNonPassantiOrdinate = {};
+
+    StampaTracceOrdinate(contenitoreTracce,numeroFratture,
+                         traccePassantiOrdinate,tracceNonPassantiOrdinate);
+
+    for(int i =0; i<numeroFratture; i++){
+        if(traccePassantiOrdinate.find(i) != traccePassantiOrdinate.end()){
+            cout<<"tracce frattura "<<i<<" passanti"<<endl;
+            for(auto& e: traccePassantiOrdinate[i]){
+                cout<<e<<endl;
+            }
+        }
+        if(tracceNonPassantiOrdinate.find(i) != tracceNonPassantiOrdinate.end()){
+            cout<<"tracce frattura "<<i<<" non passanti"<<endl;
+            for(auto& e: tracceNonPassantiOrdinate[i]){
+                cout<<e<<endl;
+            }
+        }
+    }
+
+
+    vector<edges> latiBordo = {};
+    vector<edges> latiInterni = {};
+
+
 
 return 0;
 }

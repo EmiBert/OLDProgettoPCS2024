@@ -142,7 +142,8 @@ bool CercaIntersezioni(Vector3d P, Vector3d t, Fracture F, double& c1, double& c
         Vector3d k = {F.coordx[(i+1)%F.NumVertices]-F.coordx[i], F.coordy[(i+1)%F.NumVertices]-F.coordy[i], F.coordz[(i+1)%F.NumVertices]-F.coordz[i]};
         // il modulo serve ad associare all'ultima iterata i vertici con indice pari a F.NumVertices-1 e 0 (F.NumVertices % F.NumVertices)
         // ovvero per un quadrilatero il vertice 3 e il vertice 0
-        if((k[0]/t[0] == k[1]/t[1]) && (k[2]/t[2] == k[1]/t[1])) // k e t sono paralleli, non puo' esserci intersezione
+        double valCond = abs(t[0]*k[0] + t[1]*k[1] + t[2]*k[2]) - t.norm()*k.norm();
+        if(abs(valCond) < tau) // k e t sono paralleli, non puo' esserci intersezione
         {
             continue;
         }
@@ -358,7 +359,9 @@ void QuickSort(vector<Vector2d>& A){
 
 
 
-void StampaTracceOrdinate(vector<Traces> tracesContainer, int numFracture){
+void StampaTracceOrdinate(vector<Traces> tracesContainer, int numFracture,
+                          map<int, vector<int>>& sortedPassanti,
+                          map<int, vector<int>>& sortedNonPassanti){
 
     // fileName = "sorted_traces_FRX_data.csv", X = numero fratture nel file considerato
     string fileName = "sorted_traces_FR"+to_string(numFracture)+"_data.csv";
@@ -393,8 +396,6 @@ void StampaTracceOrdinate(vector<Traces> tracesContainer, int numFracture){
             }
         }
 
-        //int numTraces = tPassanti.size() + tNonPassanti.size();
-
         if(tPassanti.size() != 0){
             QuickSort(tPassanti);
         }
@@ -402,6 +403,9 @@ void StampaTracceOrdinate(vector<Traces> tracesContainer, int numFracture){
         if(tNonPassanti.size() != 0){
             QuickSort(tNonPassanti);
         }
+
+        vector<int> idTP = {}; // id tracce passanti
+        vector<int> idTNP = {}; // id tracce non passanti
 
 
         if(tPassanti.size() + tNonPassanti.size()!= 0){
@@ -412,13 +416,17 @@ void StampaTracceOrdinate(vector<Traces> tracesContainer, int numFracture){
             if(tNonPassanti.size() !=0){
                 for(auto& t: tNonPassanti){
                     outputSortedTraces<<t[0]<<";1;"<<t[1]<<endl;
+                    idTNP.push_back(t[0]);
                 }
+                sortedNonPassanti.insert({i, idTNP});
             }
 
             if(tPassanti.size() !=0){
                 for(auto& t: tPassanti){
                     outputSortedTraces<<t[0]<<";0;"<<t[1]<<endl;
+                    idTP.push_back(t[0]);
                 }
+                sortedPassanti.insert({i, idTP});
             }
         }
     }
@@ -428,7 +436,85 @@ void StampaTracceOrdinate(vector<Traces> tracesContainer, int numFracture){
 
 
 
+void IntersezioneEdges(edges L1, edges L2, double& alpha, double& beta){
 
+    double valCond = abs(L1.t[0]*L2.t[0] + L1.t[1]*L2.t[1] + L1.t[2]*L2.t[2]) - L1.t.norm()*L2.t.norm();
+    if(abs(valCond)<1e-6) // k e t sono paralleli, non puo' esserci intersezione
+    {
+        return;
+    }
+    Vector3d b = L2.P - L1.P;
+    MatrixXd A(3, 2);
+    A.col(0) = L1.t;
+    A.col(1) = L2.t;
+    Vector2d sol = A.fullPivLu().solve(b);
+    alpha = sol[0];
+    beta = -sol[1];
+}
+
+
+void TagliaFratture(Fracture F, vector<Traces> contenitoreTracce,
+                    map<int, vector<int>> tPO, map<int, vector<int>> tNPO,
+                    vector<edges>& latiBordo, vector<edges>& latiInterni){
+    // tPO = tracce Passanti Ordinate, tNPO = tracce Non-Passanti Ordinate
+    for(int i=0; i<F.NumVertices; i++){
+        Vector3d P = {F.coordx[i], F.coordy[i], F.coordz[i]};
+        Vector3d t = {F.coordx[(i+1)%F.NumVertices]-F.coordx[i], F.coordy[(i+1)%F.NumVertices]-F.coordy[i], F.coordz[(i+1)%F.NumVertices]-F.coordz[i]};
+        edges e = {};
+        e.P = P;
+        e.t = t;
+        latiBordo.push_back(e);
+    }
+
+    if(tPO.find(F.id) != tPO.end()){
+        for(int i=0; i<tPO[F.id].size(); i++){
+            edges l = {};
+            int idTraccia = tPO[F.id][i];
+            for(auto& T: contenitoreTracce){
+                if(T.id == idTraccia){
+                    l.P = T.P1;
+                    l.t = T.P2 - T.P1;
+                    break;
+                }
+            }
+
+            bool flagStart = false;
+            bool flagEnd = false;
+
+            for(auto& b: latiBordo){
+                double alpha = 0;
+                double beta = 0;
+                IntersezioneEdges(b,l,alpha,beta);
+                if(flagStart && flagEnd){
+                    break;
+                }
+                if(abs(beta)<tau){
+                    b.intersection.push_back(alpha);
+                    flagStart = true;
+                }
+                else if(abs(beta-1)<tau){
+                    b.intersection.push_back(alpha);
+                    flagEnd = true;
+                }
+            }
+
+
+            for(auto& i: latiInterni){
+                double alpha = 0;
+                double beta = 0;
+                IntersezioneEdges(i,l,alpha,beta);
+                if(0<alpha && alpha<1 && 0<beta && beta<1){
+                    i.intersection.push_back(alpha);
+                    l.intersection.push_back(beta);
+                }
+            }
+
+            latiInterni.push_back(l);
+        }
+    }
+
+
+}
 
 
 

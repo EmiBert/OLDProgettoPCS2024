@@ -68,7 +68,26 @@ void QuickSort(vector<Vector2d>& A);
 
 
 void StampaTracceOrdinate(vector<Traces> tracesContainer,
-                          int numFracture);
+                          int numFracture,
+                          map<int, vector<int>>& sortedPassanti,
+                          map<int, vector<int>>& sortedNonPassanti);
+
+
+void IntersezioneEdges(edges L1,
+                       edges L2,
+                       double& alpha,
+                       double& beta);
+
+
+void TagliaFratture(Fracture F,
+                    vector<Traces> contenitoreTracce,
+                    map<int, vector<int>> tPO,
+                    map<int, vector<int>> tNPO,
+                    vector<edges>& latiBordo,
+                    vector<edges>& latiInterni);
+
+
+
 
 
 
