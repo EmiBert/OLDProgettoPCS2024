@@ -177,7 +177,8 @@ void InserisciTraccia(double alpha, double beta, double gamma, double delta,
     double max2 = max(gamma,delta);
     double min2 = min(gamma,delta);
 
-    if( (min1>max2) || (min2>max1) ){
+    //caso 0 A e B
+    if( (min1-max2)> -tau || (min2-max1)> -tau ){
         return; // le due fratture non si intersecano
     }
     Vector3d estremo1 = {};
@@ -185,31 +186,75 @@ void InserisciTraccia(double alpha, double beta, double gamma, double delta,
     bool T1;
     bool T2;
 
-    if( (max1>=max2) && (min1<=min2)){
+    //caso 1 A
+    if( (max1-max2)>tau && (min2-min1)>tau){
         estremo1 = P + max2*t;
         estremo2 = P + min2*t;
         T1 = true;
         T2 = false;
-        if( (max1 == max2) && (min1 == min2) )
-            T2 = false;
     }
 
-    else if( (max2>=max1) && (min2<=min1)){
+    //caso 1 B
+    else if((max2-max1)>tau && (min1-min2)>tau){
         estremo1 = P + max1*t;
         estremo2 = P + min1*t;
         T1 = false;
         T2 = true;
-        if( (max1 == max2) && (min1 == min2) )
-            T2 = false;
     }
 
-    else if( max1>max2 ){
+    // caso 2
+    else if(abs(max1-max2)<tau && abs(min1-min2)<tau){
+        estremo1 = P + max1*t;
+        estremo2 = P + min1*t;
+        T1 = false;
+        T2 = false;
+    }
+
+    // caso 3
+    else if(abs(max1-max2)<tau){
+        //caso 3 A
+        if(min2>min1){
+            estremo1 = P + max1*t;
+            estremo2 = P + min2*t;
+            T1 = true;
+            T2 = false;
+        }
+        //caso 3 B
+        else{
+            estremo1 = P + max1*t;
+            estremo2 = P + min1*t;
+            T1 = false;
+            T2 = true;
+        }
+    }
+
+    // caso 4
+    else if(abs(min1-min2)<tau){
+        //caso 4 A
+        if(max1>max2){
+            estremo1 = P + max2*t;
+            estremo2 = P + min1*t;
+            T1 = true;
+            T2 = false;
+        }
+        //caso 4 B
+        else{
+            estremo1 = P + max1*t;
+            estremo2 = P + min1*t;
+            T1 = false;
+            T2 = true;
+        }
+    }
+
+    //caso 5 A
+    else if( (max1-max2)>tau ){
         estremo1 = P + max2*t;
         estremo2 = P + min1*t;
         T1 = true;
         T2 = true;
     }
 
+    //caso 5 B
     else{
         estremo1 = P + max1*t;
         estremo2 = P + min2*t;
@@ -301,7 +346,6 @@ void CercaTracce(const Fracture F1, const Fracture F2, vector<Traces>& tracesCon
 void StampaTracce(vector<Traces> tracesContainer, int numF){
     // fileName = "traces_FRX_data.csv", X = numero fratture nel file considerato
     string fileName = "traces_FR"+to_string(numF)+"_data.csv";
-    cout<<fileName<<endl;
     ofstream outputTraces (fileName);
     outputTraces << "# Number of Traces"<<endl;    //intestazione
     outputTraces << tracesContainer.size()<<endl;
@@ -365,7 +409,6 @@ void StampaTracceOrdinate(vector<Traces> tracesContainer, int numFracture,
 
     // fileName = "sorted_traces_FRX_data.csv", X = numero fratture nel file considerato
     string fileName = "sorted_traces_FR"+to_string(numFracture)+"_data.csv";
-    cout<<fileName<<endl;
     ofstream outputSortedTraces (fileName);
 
     for(int i=0; i<numFracture; i++){
@@ -438,8 +481,10 @@ void StampaTracceOrdinate(vector<Traces> tracesContainer, int numFracture,
 
 void IntersezioneEdges(edges L1, edges L2, double& alpha, double& beta){
 
+    alpha = 42; // valori sentinella
+    beta = 42;
     double valCond = abs(L1.t[0]*L2.t[0] + L1.t[1]*L2.t[1] + L1.t[2]*L2.t[2]) - L1.t.norm()*L2.t.norm();
-    if(abs(valCond)<1e-6) // k e t sono paralleli, non puo' esserci intersezione
+    if(abs(valCond)<tau) // k e t sono paralleli, non puo' esserci intersezione
     {
         return;
     }
@@ -482,26 +527,30 @@ void TagliaFratture(Fracture F, vector<Traces> contenitoreTracce,
             bool flagEnd = false;
 
             for(auto& b: latiBordo){
-                double alpha = 0;
-                double beta = 0;
+                double alpha;
+                double beta;
                 IntersezioneEdges(b,l,alpha,beta);
                 if(flagStart && flagEnd){
                     break;
                 }
                 if(abs(beta)<tau){
-                    b.intersection.push_back(alpha);
+                    if(0<alpha && alpha<1){
+                        b.intersection.push_back(alpha);
+                    }
                     flagStart = true;
                 }
                 else if(abs(beta-1)<tau){
-                    b.intersection.push_back(alpha);
+                    if(0<alpha && alpha<1){
+                        b.intersection.push_back(alpha);
+                    }
                     flagEnd = true;
                 }
             }
 
 
             for(auto& i: latiInterni){
-                double alpha = 0;
-                double beta = 0;
+                double alpha;
+                double beta;
                 IntersezioneEdges(i,l,alpha,beta);
                 if(0<alpha && alpha<1 && 0<beta && beta<1){
                     i.intersection.push_back(alpha);
@@ -514,6 +563,79 @@ void TagliaFratture(Fracture F, vector<Traces> contenitoreTracce,
     }
 
 
+    if(tNPO.find(F.id) != tNPO.end()){        
+        for(int i=0; i<tNPO[F.id].size(); i++){
+            edges l = {};
+            int idTraccia = tNPO[F.id][i];
+            for(auto& T: contenitoreTracce){
+                if(T.id == idTraccia){
+                    l.P = T.P1;
+                    l.t = T.P2 - T.P1;
+                    break;
+                }
+            }
+
+            for(auto& b: latiBordo){
+                double alpha;
+                double beta;
+                IntersezioneEdges(b,l,alpha,beta);
+                if (abs(beta)<tau){ // caso già orientato
+                    if(0<alpha && alpha<1){
+                        b.intersection.push_back(alpha);
+                    }
+                    break;
+                }
+                else if(abs(beta-1)<tau){ // caso con orientazione da invertire
+                    if(0<alpha && alpha<1){
+                        b.intersection.push_back(alpha);
+                    }
+                    l.P += l.t;
+                    l.t = -l.t;
+                    break;
+                }
+            }
+
+            // ricerca dell'estremo mancante
+            Vector3d best = {-1,0,0}; // best[0] = indice lato, best[1] = intersezione l, best[2] = intersezione b oppure i
+            double j = -1;
+            for(auto& b: latiBordo){
+                j++;
+                double alpha;
+                double beta;
+                IntersezioneEdges(b,l,alpha,beta);
+                if(1<beta){
+                    if(beta<best[1] || best[1]==0){
+                        best = {j,beta,alpha};
+                    }
+                }
+
+            }
+
+            for(auto& i: latiInterni){
+                j++;
+                double alpha;
+                double beta;
+                IntersezioneEdges(i,l,alpha,beta);
+                if(1<beta){
+                    if(beta<best[1] || best[1]==0){
+                        best = {j,beta,alpha};
+                    }
+                }
+            }
+
+            // aggiornamento di l
+            l.t *= best[1];
+            latiInterni.push_back(l);
+
+            if(best[0] >= latiBordo.size()){
+                best[0] -= latiBordo.size();
+                latiInterni[best[0]].intersection.push_back(best[2]);
+            }
+            else{
+                latiBordo[best[0]].intersection.push_back(best[2]);
+            }
+        }
+    }
 }
 
 
