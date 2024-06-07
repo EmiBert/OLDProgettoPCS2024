@@ -47,24 +47,49 @@ void StampaTracce(vector<Traces> tracesContainer,
                   int numF);
 
 
-void Scambia(vector<Vector2d>& A,
-             int i,
-             int j);
+
+template<typename T>
+void Scambia(vector<T>& A, int i, int j){
+    T temp = A[j];
+    A[j] = A[i];
+    A[i] = temp;
+}
+
+
+template<typename T>
+int Distribuzione(vector<T>& A, int sinistra, int destra){
+    T x = A[destra];
+    int i = sinistra-1;
+    for(int j=sinistra; j<destra; j++){
+        if(A[j] >= x){
+            i++;
+            Scambia(A,i,j);
+        }
+    }
+    Scambia(A,i+1,destra);
+    return i+1;
+}
 
 
 
-int Distribuzione(vector<Vector2d>& A,
-                  int sinistra,
-                  int destra);
+//    2 pre: 0≤sinistra,destra≤n−1
+template<typename T>
+void QuickSort(vector<T>& A, int sinistra, int destra){
+    if (sinistra < destra){
+        // il pivot è l'ultimo indice, "destra"
+        int rango = Distribuzione(A, sinistra, destra);
+        QuickSort(A, sinistra, rango-1);
+        QuickSort(A, rango+1, destra);
+    }
+}
 
 
-void QuickSort(vector<Vector2d>& A,
-               int sinistra,
-               int destra);
-
-
-
-void QuickSort(vector<Vector2d>& A);
+template<typename T>
+void QuickSort(vector<T>& A){
+    int sinistra = 0;
+    int destra = A.size()-1;
+    QuickSort(A, sinistra, destra);
+}
 
 
 void StampaTracceOrdinate(vector<Traces> tracesContainer,
@@ -87,7 +112,43 @@ void TagliaFratture(Fracture F,
                     vector<edges>& latiInterni);
 
 
+void CercaEstremo(Vector3d P,
+                  int& id,
+                  vector<Vector3d> CoordinateNodi,
+                  vector<int> idNodi,
+                  bool& flag);
 
+
+void CercaEstremo(Vector3d P,
+                  int& id,
+                  vector<Vector3d> CoordinateNodi,
+                  vector<int> idNodi);
+
+
+void CaricamentoCell0e1D(vector<edges>& latiBordo,
+                         vector<edges>& latiInterni,
+                         PolygonalMesh& mesh,
+                         vector<int>& idBordo,
+                         vector<int>& idInterno);
+
+
+
+Vector3d CalcoloNormaleMesh(PolygonalMesh mesh);
+
+void LatoSuccessivo(Vector3d& CurrentEdgeTan,
+                    int& CurrentNode,
+                    int& CurrentEdgeId,
+                    vector<int>& nodiPoly,
+                    vector<int>& latiPoly,
+                    int& inverti,
+                    bool& chiuso,
+                    PolygonalMesh mesh,
+                    Vector3d N);
+
+
+void CaricamentoCell2D (PolygonalMesh& mesh,
+                       vector<int>& idBordo,
+                       vector<int>& idInterno);
 
 
 

@@ -360,20 +360,21 @@ void StampaTracce(vector<Traces> tracesContainer, int numF){
 }
 
 
-
-
-void Scambia(vector<Vector2d>& A, int i, int j){
-    Vector2d temp = A[j];
+/*
+template<typename T>
+void Scambia(vector<T>& A, int i, int j){
+    T temp = A[j];
     A[j] = A[i];
     A[i] = temp;
 }
 
 
-int Distribuzione(vector<Vector2d>& A, int sinistra, int destra){
-    Vector2d x = A[destra];
+template<typename T>
+int Distribuzione(vector<T>& A, int sinistra, int destra){
+    T x = A[destra];
     int i = sinistra-1;
     for(int j=sinistra; j<destra; j++){
-        if(A[j][1] >=x[1]){
+        if(A[j] >= x){
             i++;
             Scambia(A,i,j);
         }
@@ -383,8 +384,10 @@ int Distribuzione(vector<Vector2d>& A, int sinistra, int destra){
 }
 
 
+
 //    2 pre: 0≤sinistra,destra≤n−1
-void QuickSort(vector<Vector2d>& A, int sinistra, int destra){
+template<typename T>
+void QuickSort(vector<T>& A, int sinistra, int destra){
     if (sinistra < destra){
         // il pivot è l'ultimo indice, "destra"
         int rango = Distribuzione(A, sinistra, destra);
@@ -394,13 +397,13 @@ void QuickSort(vector<Vector2d>& A, int sinistra, int destra){
 }
 
 
-void QuickSort(vector<Vector2d>& A){
+template<typename T>
+void QuickSort(vector<T>& A){
     int sinistra = 0;
     int destra = A.size()-1;
     QuickSort(A, sinistra, destra);
 }
-
-
+*/
 
 
 void StampaTracceOrdinate(vector<Traces> tracesContainer, int numFracture,
@@ -413,13 +416,13 @@ void StampaTracceOrdinate(vector<Traces> tracesContainer, int numFracture,
 
     for(int i=0; i<numFracture; i++){
         // contenitori di tracce in forma breve, Vector2d: [TraceId, Length]
-        vector<Vector2d> tPassanti = {};
-        vector<Vector2d> tNonPassanti = {};
+        vector<ShortTraces> tPassanti = {};
+        vector<ShortTraces> tNonPassanti = {};
 
         for(auto& t: tracesContainer){
 
             if(t.FractureID1 == i){
-                Vector2d shortT = {t.id, t.Length};
+                ShortTraces shortT(t.id, t.Length);
                 if(t.Tips1 == true){
                     tNonPassanti.push_back(shortT);
                 }
@@ -429,7 +432,7 @@ void StampaTracceOrdinate(vector<Traces> tracesContainer, int numFracture,
             }
 
             if(t.FractureID2 == i){
-                Vector2d shortT = {t.id, t.Length};
+                ShortTraces shortT(t.id, t.Length);
                 if(t.Tips2 == true){
                     tNonPassanti.push_back(shortT);
                 }
@@ -456,24 +459,25 @@ void StampaTracceOrdinate(vector<Traces> tracesContainer, int numFracture,
             outputSortedTraces << i<<";"<< tPassanti.size() + tNonPassanti.size()<<endl;
             outputSortedTraces << "# TraceId; Tips; Length"<<endl;
 
-            if(tNonPassanti.size() !=0){
+            if(!tPassanti.empty()){
+                for(auto& t: tPassanti){
+                    outputSortedTraces<<t.id<<";0;"<<t.Length<<endl;
+                    idTP.push_back(t.id);
+                }
+                sortedPassanti.insert({i, idTP});
+            }
+
+            if(!tNonPassanti.empty()){
                 for(auto& t: tNonPassanti){
-                    outputSortedTraces<<t[0]<<";1;"<<t[1]<<endl;
-                    idTNP.push_back(t[0]);
+                    outputSortedTraces<<t.id<<";1;"<<t.Length<<endl;
+                    idTNP.push_back(t.id);
                 }
                 sortedNonPassanti.insert({i, idTNP});
             }
 
-            if(tPassanti.size() !=0){
-                for(auto& t: tPassanti){
-                    outputSortedTraces<<t[0]<<";0;"<<t[1]<<endl;
-                    idTP.push_back(t[0]);
-                }
-                sortedPassanti.insert({i, idTP});
-            }
+
         }
     }
-
     outputSortedTraces.close();
 }
 
@@ -637,6 +641,269 @@ void TagliaFratture(Fracture F, vector<Traces> contenitoreTracce,
         }
     }
 }
+
+
+void CercaEstremo(Vector3d P, int& id, vector<Vector3d> CoordinateNodi,
+                  vector<int> idNodi, bool& flag){
+    flag = false;
+    int indice = -1;
+    for(auto& n: CoordinateNodi){
+        indice++;
+        if((n-P).norm()<tau){
+            flag = true;
+            id = idNodi[indice];
+            break;
+        }
+    }
+}
+
+
+void CercaEstremo(Vector3d P, int& id, vector<Vector3d> CoordinateNodi, vector<int> idNodi){
+    bool flag;
+    CercaEstremo(P,id,CoordinateNodi,idNodi,flag);
+}
+
+
+
+
+void CaricamentoCell0e1D(vector<edges>& latiBordo, vector<edges>& latiInterni, PolygonalMesh& mesh,
+                         vector<int>& idBordo, vector<int>& idInterno){
+    vector<int> tempCell0DId = {};
+    vector<Vector3d> tempCell0DCoordinates = {};
+    vector<vector<int>> tempInvolvedEdges = {};
+    vector<int> tempCell1DId = {};
+    vector<Vector2i> tempCell1DVertices = {};
+
+    int n = -1;
+    for(auto& b: latiBordo){
+        n++;
+        tempCell0DId.push_back(n);
+        tempCell0DCoordinates.push_back(b.P);
+        if(!b.intersection.empty()){
+            QuickSort(b.intersection);
+            for(auto& inter: b.intersection){
+                n++;
+                tempCell0DId.push_back(n);
+                tempCell0DCoordinates.push_back(b.P+inter*b.t);
+            }
+        }
+    }
+
+    tempInvolvedEdges.push_back({n,0});
+    tempCell1DVertices.push_back({0,1});
+    for(int j = 1; j<n; j++){
+        tempInvolvedEdges.push_back({j-1,j});
+        tempCell1DVertices.push_back({j,j+1});
+    }
+    tempInvolvedEdges.push_back({n-1,n});
+    tempCell1DVertices.push_back({n,0});
+
+    //caricamento identificativi lati bordo
+    for(int j =0; j<n+1; j++){
+        tempCell1DId.push_back(j);
+    }
+
+
+    int l = n;
+    for(auto& i: latiInterni){
+        int idEstremo1 = -1;
+        int idEstremo2 = -1;
+        CercaEstremo(i.P, idEstremo1, tempCell0DCoordinates, tempCell0DId);
+        if(!i.intersection.empty()){
+            QuickSort(i.intersection);
+            for(auto& inter: i.intersection){
+                l++;
+                bool trovato;
+                CercaEstremo(i.P+inter*i.t, idEstremo2, tempCell0DCoordinates, tempCell0DId, trovato);
+                if(!trovato){
+                    n++;
+                    tempCell0DId.push_back(n);
+                    tempCell0DCoordinates.push_back(i.P+inter*i.t);
+                    idEstremo2 = n;
+                }
+                tempCell1DVertices.push_back({idEstremo1,idEstremo2});
+
+                if(n>=tempInvolvedEdges.size()){
+                    tempInvolvedEdges.resize(n*2);
+                }
+                tempInvolvedEdges[idEstremo1].push_back(l);
+                tempInvolvedEdges[idEstremo2].push_back(l);
+                idEstremo1 = idEstremo2;
+            }
+        }
+        CercaEstremo(i.P+i.t, idEstremo2, tempCell0DCoordinates, tempCell0DId);
+        l++;
+        tempCell1DVertices.push_back({idEstremo1,idEstremo2});
+        tempInvolvedEdges[idEstremo1].push_back(l);
+        tempInvolvedEdges[idEstremo2].push_back(l);
+    }
+
+    idBordo = tempCell1DId;
+    for(int j = idBordo.size(); j<l+1; j++){
+        tempCell1DId.push_back(j);
+        idInterno.push_back(j);
+    }
+
+    mesh.NumberCell0D = tempCell0DId.size();
+    mesh.Cell0DId = tempCell0DId;
+    mesh.Cell0DCoordinates = tempCell0DCoordinates;
+    tempInvolvedEdges.resize(mesh.NumberCell0D);
+    mesh.InvolvedEdges = tempInvolvedEdges;
+    mesh.NumberCell1D = tempCell1DId.size();
+    mesh.Cell1DId = tempCell1DId;
+    mesh.Cell1DVertices = tempCell1DVertices;
+}
+
+
+
+Vector3d CalcoloNormaleMesh(PolygonalMesh mesh){
+    Vector3d origine = mesh.Cell0DCoordinates[0];
+    Vector3d v1 = mesh.Cell0DCoordinates[1]-origine;
+    Vector3d v2 = {};
+    for(int i = 2; i<mesh.NumberCell0D; i++){
+        v2 = mesh.Cell0DCoordinates[i]-origine;
+        if(abs(abs(v1[0]*v2[0]+v1[1]*v2[1]+v1[2]*v2[2]) - v1.norm()*v2.norm())>tau){
+            // i due vettori non sono paralleli
+            break;
+        }
+    }
+    double Nx = v1[1]*v2[2] - v1[2]*v2[1];
+    double Ny = v1[2]*v2[0] - v1[0]*v2[2];
+    double Nz = v1[0]*v2[1] - v1[1]*v2[0];
+    Vector3d N = {Nx, Ny, Nz};
+    N = N/N.norm();
+    return N;
+}
+
+
+void LatoSuccessivo(Vector3d& CurrentEdgeTan, int& CurrentNode, int& CurrentEdgeId,
+                    vector<int>& nodiPoly, vector<int>& latiPoly, int& inverti, bool& chiuso,
+                    PolygonalMesh mesh, Vector3d N){
+    if(inverti != 2){
+        inverti = 1;
+    }
+    double bestValue = -2;
+    int idBestLato = -1;
+    int idBestNodoEsterno = -1;
+    Vector3d bestluTan = {};
+    int idNodoEsterno = -1;
+    double vax = N[1]*CurrentEdgeTan[2] - N[2]*CurrentEdgeTan[1];
+    double vay = N[2]*CurrentEdgeTan[0] - N[0]*CurrentEdgeTan[2];
+    double vaz = N[0]*CurrentEdgeTan[1] - N[1]*CurrentEdgeTan[0];
+    Vector3d versoAntiorario = {vax, vay, vaz};
+    cout<<"versoAntiorario"<<endl<<versoAntiorario<<endl;
+    versoAntiorario = versoAntiorario/versoAntiorario.norm();
+    for(auto& lu: mesh.InvolvedEdges[CurrentNode]){ //lu = lati uscenti        
+        if(lu == CurrentEdgeId){
+            continue;
+        }
+        if(CurrentNode == mesh.Cell1DVertices[lu][0]){
+            idNodoEsterno = mesh.Cell1DVertices[lu][1];
+            cout<<"passa su"<<endl;
+        }
+        else{
+            idNodoEsterno = mesh.Cell1DVertices[lu][0];
+            cout<<"passa giu"<<endl;
+            cout<<"idNodoEsterno: "<<idNodoEsterno<<endl;
+        }
+        Vector3d luTan = mesh.Cell0DCoordinates[idNodoEsterno] - mesh.Cell0DCoordinates[CurrentNode];
+        cout<<"//// current node qui: "<<CurrentNode<<endl;
+        if(luTan[0]*versoAntiorario[0]+luTan[1]*versoAntiorario[1]+luTan[2]*versoAntiorario[2]>=0){
+            cout<<"entra qua dentro?"<<endl;
+            if(inverti != 2){
+                inverti = 0;
+            }
+            Vector3d normluTan = luTan/luTan.norm();
+            // newValue = (versoAntiorario x luTan) * (scalare) N;
+            double x = versoAntiorario[1]*normluTan[2] - versoAntiorario[2]*normluTan[1];
+            double y = versoAntiorario[2]*normluTan[0] - versoAntiorario[0]*normluTan[2];
+            double z = versoAntiorario[0]*normluTan[1] - versoAntiorario[1]*normluTan[0];
+            double newValue = x*N[0] + y*N[1] + z*N[2];
+            if(newValue > bestValue){
+                bestValue = newValue;
+                idBestLato = lu;
+                idBestNodoEsterno = idNodoEsterno;
+                bestluTan = luTan;
+            }
+        }
+    }
+
+    for(auto& idN: nodiPoly){
+        if(idN == idBestNodoEsterno){
+            chiuso = true;
+        }
+    }
+    if(!chiuso){
+        nodiPoly.push_back(idBestNodoEsterno);
+    }
+
+    CurrentEdgeTan = bestluTan;
+    cout<<"*CurrentEdgeTan: "<<endl<<CurrentEdgeTan<<endl;
+    CurrentNode = idBestNodoEsterno;
+    cout<<"*CurrentNode: "<<CurrentNode<<endl;
+    latiPoly.push_back(idBestLato);
+    CurrentEdgeId = idBestLato;
+}
+
+
+void CaricamentoCell2D (PolygonalMesh& mesh, vector<int>& idBordo, vector<int>& idInterno){
+    int id2D = -1;
+    Vector3d N = CalcoloNormaleMesh(mesh);
+    while(!idBordo.empty()){
+        id2D++;
+        int idEdgeIniz = idBordo[0];
+        cout<<"idEdgeIniz: "<<idEdgeIniz<<endl;
+        int CurrentEdgeId = idEdgeIniz;
+        vector<int> latiPoly = {idEdgeIniz};
+        vector<int> nodiPoly = {mesh.Cell1DVertices[idEdgeIniz][0], mesh.Cell1DVertices[idEdgeIniz][1]};
+        Vector3d CurrentEdgeTan = mesh.Cell0DCoordinates[nodiPoly[1]] - mesh.Cell0DCoordinates[nodiPoly[0]];
+        cout<<"mesh.Cell0DCoordinates[nodiPoly[1]]:"<<endl;
+        cout<<mesh.Cell0DCoordinates[nodiPoly[1]]<<endl;
+        cout<<"mesh.Cell0DCoordinates[nodiPoly[0]]:"<<endl;
+        cout<<mesh.Cell0DCoordinates[nodiPoly[0]]<<endl;
+        cout<<"nodiPoly[0]: "<<nodiPoly[0]<<endl;
+        cout<<"nodiPoly[1]: "<<nodiPoly[1]<<endl;
+        cout<<"CurrentEdgeTan: "<<endl<<CurrentEdgeTan<<endl;
+        int CurrentNode = nodiPoly[1];
+        cout<<"CurrentNode: "<<CurrentNode<<endl;
+        int inverti = 0;
+        bool chiuso = false;
+
+        while(!chiuso){
+            if(inverti == 1){
+                cout<<"ha invertito"<<endl;
+                latiPoly = {idEdgeIniz};
+                nodiPoly = {mesh.Cell1DVertices[idEdgeIniz][1], mesh.Cell1DVertices[idEdgeIniz][0]}; //inversione
+                CurrentEdgeTan = mesh.Cell0DCoordinates[nodiPoly[1]] - mesh.Cell0DCoordinates[nodiPoly[0]];
+                cout<<"**CurrentEdgeTan: "<<endl<<CurrentEdgeTan<<endl;
+                CurrentNode = nodiPoly[1];
+                cout<<"**CurrentNode: "<<CurrentNode<<endl;
+                inverti = 2;
+                CurrentEdgeId = idEdgeIniz;
+            }
+            LatoSuccessivo(CurrentEdgeTan, CurrentNode, CurrentEdgeId, nodiPoly,
+                           latiPoly, inverti, chiuso, mesh, N);
+        }
+
+        mesh.Cell2DId.insert({id2D, latiPoly.size()});
+        mesh.Cell2DVertices.push_back(nodiPoly);
+        mesh.Cell2DEdges.push_back(latiPoly);
+        for(auto& l: latiPoly){
+            vector<int>::iterator it = find(idInterno.begin(),idInterno.end(), l);
+            if(it != idInterno.end()){
+                idInterno.erase(it);
+                idBordo.push_back(l);
+            }
+            else{
+                idBordo.erase(find(idBordo.begin(), idBordo.end(), l));
+            }
+
+        }
+    }
+}
+
+
+
 
 
 

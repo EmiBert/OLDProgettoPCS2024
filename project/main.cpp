@@ -12,7 +12,7 @@ int main()
 {
     vector<Fracture> contenitoreFratture;
     int numeroFratture = 0;
-    string filepath = "DFN/FR3_data.txt";
+    string filepath = "DFN/FR10_data.txt";
 
     if(!ImportaFratture(filepath, contenitoreFratture, numeroFratture)){
         return 1;
@@ -93,14 +93,14 @@ int main()
         }
     }
 */
-
+    int indiceFrattura = 0;
     vector<edges> latiBordo = {};
     vector<edges> latiInterni = {};
 
-    TagliaFratture(contenitoreFratture[0], contenitoreTracce,
+    TagliaFratture(contenitoreFratture[indiceFrattura], contenitoreTracce,
                    traccePassantiOrdinate, tracceNonPassantiOrdinate,
                    latiBordo,latiInterni);
-
+/*
     //stampa bordo e interni
     cout<<"lati bordo"<<endl;
     for(auto& e: latiBordo){
@@ -124,9 +124,62 @@ int main()
         cout<<endl;
     }
 
+*/
+    PolygonalMesh mesh = {};
+    vector<int> idBordo = {};
+    vector<int> idInterno = {};
+    CaricamentoCell0e1D(latiBordo,latiInterni, mesh, idBordo,idInterno);
+/*
+    cout<<"NumberCell0D: "<<mesh.NumberCell0D<<endl;
+    cout<<"Cell0id: "<<endl;
+    for(auto& e: mesh.Cell0DId){
+        cout<<e<<endl;
+    }
+    cout<<"Cell0DCoordinates: "<<endl;
+    for(auto& e: mesh.Cell0DCoordinates){
+        cout<<e[0]<<"  "<<e[1]<<"  "<<e[2]<<endl;
+    }
+    cout<<"InvolvedEdges: "<<endl;
+    for(auto& e: mesh.InvolvedEdges){
+        cout<<"*";
+        for(auto& i: e){
+            cout<<i<<"  ";
+        }
+        cout<<endl;
+    }
 
+    cout<<"NumberCell1D: "<<mesh.NumberCell1D<<endl;
+    cout<<"Cell1id: "<<endl;
+    for(auto& e: mesh.Cell1DId){
+        cout<<e<<endl;
+    }
+    cout<<"Cell1DVertices: "<<endl;
+    for(auto& e: mesh.Cell1DVertices){
+        cout<<e[0]<<"  "<<e[1]<<endl;
+    }
 
+*/
 
+    CaricamentoCell2D (mesh, idBordo, idInterno);
+    cout<<"*****************************************"<<endl;
+    cout<<"mesh.Cell2DId:"<<endl;
+    for (auto& x : mesh.Cell2DId){
+        cout<<"id: "<<x.first<<"  dim: "<<x.second<<endl;
+    }
+    cout<<"mesh.Cell2DVertices:"<<endl;
+    for(auto& c: mesh.Cell2DVertices){
+        for(auto& v: c){
+            cout<<v<<" ";
+        }
+        cout<<endl;
+    }
+    cout<<"mesh.Cell2DEdges:"<<endl;
+    for(auto& c: mesh.Cell2DEdges){
+        for(auto& e: c){
+            cout<<e<<" ";
+        }
+        cout<<endl;
+    }
 
 return 0;
 }
