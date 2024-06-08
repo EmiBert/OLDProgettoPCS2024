@@ -360,51 +360,6 @@ void StampaTracce(vector<Traces> tracesContainer, int numF){
 }
 
 
-/*
-template<typename T>
-void Scambia(vector<T>& A, int i, int j){
-    T temp = A[j];
-    A[j] = A[i];
-    A[i] = temp;
-}
-
-
-template<typename T>
-int Distribuzione(vector<T>& A, int sinistra, int destra){
-    T x = A[destra];
-    int i = sinistra-1;
-    for(int j=sinistra; j<destra; j++){
-        if(A[j] >= x){
-            i++;
-            Scambia(A,i,j);
-        }
-    }
-    Scambia(A,i+1,destra);
-    return i+1;
-}
-
-
-
-//    2 pre: 0≤sinistra,destra≤n−1
-template<typename T>
-void QuickSort(vector<T>& A, int sinistra, int destra){
-    if (sinistra < destra){
-        // il pivot è l'ultimo indice, "destra"
-        int rango = Distribuzione(A, sinistra, destra);
-        QuickSort(A, sinistra, rango-1);
-        QuickSort(A, rango+1, destra);
-    }
-}
-
-
-template<typename T>
-void QuickSort(vector<T>& A){
-    int sinistra = 0;
-    int destra = A.size()-1;
-    QuickSort(A, sinistra, destra);
-}
-*/
-
 
 void StampaTracceOrdinate(vector<Traces> tracesContainer, int numFracture,
                           map<int, vector<int>>& sortedPassanti,
@@ -532,22 +487,22 @@ void TagliaFratture(Fracture F, vector<Traces> contenitoreTracce,
 
             for(auto& b: latiBordo){
                 double alpha;
-                double beta;
-                IntersezioneEdges(b,l,alpha,beta);
+                double beta;                
                 if(flagStart && flagEnd){
                     break;
                 }
+                IntersezioneEdges(b,l,alpha,beta);
                 if(abs(beta)<tau){
                     if(0<alpha && alpha<1){
                         b.intersection.push_back(alpha);
+                        flagStart = true;
                     }
-                    flagStart = true;
                 }
                 else if(abs(beta-1)<tau){
                     if(0<alpha && alpha<1){
                         b.intersection.push_back(alpha);
-                    }
-                    flagEnd = true;
+                        flagEnd = true;
+                    }                    
                 }
             }
 
@@ -556,7 +511,7 @@ void TagliaFratture(Fracture F, vector<Traces> contenitoreTracce,
                 double alpha;
                 double beta;
                 IntersezioneEdges(i,l,alpha,beta);
-                if(0<alpha && alpha<1 && 0<beta && beta<1){
+                if(tau<alpha && alpha<1-tau && tau<beta && beta<1-tau){
                     i.intersection.push_back(alpha);
                     l.intersection.push_back(beta);
                 }
@@ -578,24 +533,34 @@ void TagliaFratture(Fracture F, vector<Traces> contenitoreTracce,
                     break;
                 }
             }
-
+            // valuto orientazione
             for(auto& b: latiBordo){
                 double alpha;
                 double beta;
                 IntersezioneEdges(b,l,alpha,beta);
                 if (abs(beta)<tau){ // caso già orientato
-                    if(0<alpha && alpha<1){
+                    if(tau<alpha && alpha<1-tau){
                         b.intersection.push_back(alpha);
                     }
                     break;
                 }
                 else if(abs(beta-1)<tau){ // caso con orientazione da invertire
-                    if(0<alpha && alpha<1){
+                    if(tau<alpha && alpha<1-tau){
                         b.intersection.push_back(alpha);
                     }
                     l.P += l.t;
                     l.t = -l.t;
                     break;
+                }
+            }
+            //valuto intersezioni prima dell'estensione
+            for(auto& i: latiInterni){
+                double alpha;
+                double beta;
+                IntersezioneEdges(i,l,alpha,beta);
+                if(tau<alpha && alpha<1-tau && tau<beta && beta<1-tau){
+                    i.intersection.push_back(alpha);
+                    l.intersection.push_back(beta);
                 }
             }
 
@@ -607,7 +572,7 @@ void TagliaFratture(Fracture F, vector<Traces> contenitoreTracce,
                 double alpha;
                 double beta;
                 IntersezioneEdges(b,l,alpha,beta);
-                if(1<beta){
+                if(1+tau<beta){
                     if(beta<best[1] || best[1]==0){
                         best = {j,beta,alpha};
                     }
@@ -629,6 +594,9 @@ void TagliaFratture(Fracture F, vector<Traces> contenitoreTracce,
 
             // aggiornamento di l
             l.t *= best[1];
+            for(auto& inter: l.intersection){
+                inter = inter/best[1];
+            }
             latiInterni.push_back(l);
 
             if(best[0] >= latiBordo.size()){
@@ -680,11 +648,12 @@ void CaricamentoCell0e1D(vector<edges>& latiBordo, vector<edges>& latiInterni, P
         tempCell0DId.push_back(n);
         tempCell0DCoordinates.push_back(b.P);
         if(!b.intersection.empty()){
+            // ordinamento decrescente
             QuickSort(b.intersection);
-            for(auto& inter: b.intersection){
+            for(int j = b.intersection.size()-1; j>-1; j--){
                 n++;
                 tempCell0DId.push_back(n);
-                tempCell0DCoordinates.push_back(b.P+inter*b.t);
+                tempCell0DCoordinates.push_back(b.P+b.intersection[j]*b.t);
             }
         }
     }
@@ -710,15 +679,16 @@ void CaricamentoCell0e1D(vector<edges>& latiBordo, vector<edges>& latiInterni, P
         int idEstremo2 = -1;
         CercaEstremo(i.P, idEstremo1, tempCell0DCoordinates, tempCell0DId);
         if(!i.intersection.empty()){
+            // ordinamento decrescente
             QuickSort(i.intersection);
-            for(auto& inter: i.intersection){
+            for(int j = i.intersection.size()-1; j>-1; j--){
                 l++;
                 bool trovato;
-                CercaEstremo(i.P+inter*i.t, idEstremo2, tempCell0DCoordinates, tempCell0DId, trovato);
+                CercaEstremo(i.P+i.intersection[j]*i.t, idEstremo2, tempCell0DCoordinates, tempCell0DId, trovato);
                 if(!trovato){
                     n++;
                     tempCell0DId.push_back(n);
-                    tempCell0DCoordinates.push_back(i.P+inter*i.t);
+                    tempCell0DCoordinates.push_back(i.P+i.intersection[j]*i.t);
                     idEstremo2 = n;
                 }
                 tempCell1DVertices.push_back({idEstremo1,idEstremo2});
@@ -778,8 +748,8 @@ Vector3d CalcoloNormaleMesh(PolygonalMesh mesh){
 
 void LatoSuccessivo(Vector3d& CurrentEdgeTan, int& CurrentNode, int& CurrentEdgeId,
                     vector<int>& nodiPoly, vector<int>& latiPoly, int& inverti, bool& chiuso,
-                    PolygonalMesh mesh, Vector3d N){
-    if(inverti != 2){
+                    PolygonalMesh mesh, Vector3d N, vector<int>& idBordo, vector<int>& idInterno){
+    if(inverti != 2){ // se inverti = 2 ha già invertito un volta (è il massimo)
         inverti = 1;
     }
     double bestValue = -2;
@@ -791,29 +761,32 @@ void LatoSuccessivo(Vector3d& CurrentEdgeTan, int& CurrentNode, int& CurrentEdge
     double vay = N[2]*CurrentEdgeTan[0] - N[0]*CurrentEdgeTan[2];
     double vaz = N[0]*CurrentEdgeTan[1] - N[1]*CurrentEdgeTan[0];
     Vector3d versoAntiorario = {vax, vay, vaz};
-    cout<<"versoAntiorario"<<endl<<versoAntiorario<<endl;
     versoAntiorario = versoAntiorario/versoAntiorario.norm();
     for(auto& lu: mesh.InvolvedEdges[CurrentNode]){ //lu = lati uscenti        
         if(lu == CurrentEdgeId){
             continue;
         }
+        bool trovatoBordo = (find(idBordo.begin(),idBordo.end(), lu) != idBordo.end());
+        bool trovatoInterno = (find(idInterno.begin(),idInterno.end(), lu) != idInterno.end());
+        if(!(trovatoBordo || trovatoInterno)){
+            //non trovato
+            cout<<"passa mai di qui?"<<endl;
+            continue;
+        }
+
         if(CurrentNode == mesh.Cell1DVertices[lu][0]){
             idNodoEsterno = mesh.Cell1DVertices[lu][1];
-            cout<<"passa su"<<endl;
         }
         else{
             idNodoEsterno = mesh.Cell1DVertices[lu][0];
-            cout<<"passa giu"<<endl;
-            cout<<"idNodoEsterno: "<<idNodoEsterno<<endl;
         }
         Vector3d luTan = mesh.Cell0DCoordinates[idNodoEsterno] - mesh.Cell0DCoordinates[CurrentNode];
-        cout<<"//// current node qui: "<<CurrentNode<<endl;
-        if(luTan[0]*versoAntiorario[0]+luTan[1]*versoAntiorario[1]+luTan[2]*versoAntiorario[2]>=0){
+        Vector3d normluTan = luTan/luTan.norm();
+        if(normluTan[0]*versoAntiorario[0]+normluTan[1]*versoAntiorario[1]+normluTan[2]*versoAntiorario[2]> -tau){
             cout<<"entra qua dentro?"<<endl;
             if(inverti != 2){
                 inverti = 0;
             }
-            Vector3d normluTan = luTan/luTan.norm();
             // newValue = (versoAntiorario x luTan) * (scalare) N;
             double x = versoAntiorario[1]*normluTan[2] - versoAntiorario[2]*normluTan[1];
             double y = versoAntiorario[2]*normluTan[0] - versoAntiorario[0]*normluTan[2];
@@ -830,10 +803,12 @@ void LatoSuccessivo(Vector3d& CurrentEdgeTan, int& CurrentNode, int& CurrentEdge
 
     for(auto& idN: nodiPoly){
         if(idN == idBestNodoEsterno){
+            cout<<"ha chiuso"<<endl;
             chiuso = true;
         }
     }
     if(!chiuso){
+        cout<<"non ha chiuso"<<endl;
         nodiPoly.push_back(idBestNodoEsterno);
     }
 
@@ -857,13 +832,8 @@ void CaricamentoCell2D (PolygonalMesh& mesh, vector<int>& idBordo, vector<int>& 
         vector<int> latiPoly = {idEdgeIniz};
         vector<int> nodiPoly = {mesh.Cell1DVertices[idEdgeIniz][0], mesh.Cell1DVertices[idEdgeIniz][1]};
         Vector3d CurrentEdgeTan = mesh.Cell0DCoordinates[nodiPoly[1]] - mesh.Cell0DCoordinates[nodiPoly[0]];
-        cout<<"mesh.Cell0DCoordinates[nodiPoly[1]]:"<<endl;
-        cout<<mesh.Cell0DCoordinates[nodiPoly[1]]<<endl;
-        cout<<"mesh.Cell0DCoordinates[nodiPoly[0]]:"<<endl;
-        cout<<mesh.Cell0DCoordinates[nodiPoly[0]]<<endl;
-        cout<<"nodiPoly[0]: "<<nodiPoly[0]<<endl;
-        cout<<"nodiPoly[1]: "<<nodiPoly[1]<<endl;
-        cout<<"CurrentEdgeTan: "<<endl<<CurrentEdgeTan<<endl;
+        cout<<"CurrentEdgeTan iniziale"<<endl<<CurrentEdgeTan<<endl;
+        cout<<"nodo iniziale: "<<nodiPoly[0]<<endl;
         int CurrentNode = nodiPoly[1];
         cout<<"CurrentNode: "<<CurrentNode<<endl;
         int inverti = 0;
@@ -876,35 +846,39 @@ void CaricamentoCell2D (PolygonalMesh& mesh, vector<int>& idBordo, vector<int>& 
                 nodiPoly = {mesh.Cell1DVertices[idEdgeIniz][1], mesh.Cell1DVertices[idEdgeIniz][0]}; //inversione
                 CurrentEdgeTan = mesh.Cell0DCoordinates[nodiPoly[1]] - mesh.Cell0DCoordinates[nodiPoly[0]];
                 cout<<"**CurrentEdgeTan: "<<endl<<CurrentEdgeTan<<endl;
+                cout<<"**nodo iniziale: "<<nodiPoly[0]<<endl;
                 CurrentNode = nodiPoly[1];
                 cout<<"**CurrentNode: "<<CurrentNode<<endl;
                 inverti = 2;
                 CurrentEdgeId = idEdgeIniz;
             }
             LatoSuccessivo(CurrentEdgeTan, CurrentNode, CurrentEdgeId, nodiPoly,
-                           latiPoly, inverti, chiuso, mesh, N);
+                           latiPoly, inverti, chiuso, mesh, N,
+                           idBordo,idInterno);
         }
 
         mesh.Cell2DId.insert({id2D, latiPoly.size()});
         mesh.Cell2DVertices.push_back(nodiPoly);
         mesh.Cell2DEdges.push_back(latiPoly);
+        cout<<"CHIUSO"<<endl;
+        cout<<"numero lati: "<<latiPoly.size()<<endl;
+        cout<<"numero nodi: "<<nodiPoly.size()<<endl;
         for(auto& l: latiPoly){
             vector<int>::iterator it = find(idInterno.begin(),idInterno.end(), l);
             if(it != idInterno.end()){
+                cout<<"cancella interno"<<endl;
                 idInterno.erase(it);
                 idBordo.push_back(l);
             }
             else{
+                if(find(idBordo.begin(), idBordo.end(), l) != idBordo.end()){
+                    cout<<"cancella bordo"<<endl;
+                }
                 idBordo.erase(find(idBordo.begin(), idBordo.end(), l));
             }
 
         }
     }
 }
-
-
-
-
-
 
 }

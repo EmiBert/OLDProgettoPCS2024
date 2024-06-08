@@ -100,7 +100,7 @@ int main()
     TagliaFratture(contenitoreFratture[indiceFrattura], contenitoreTracce,
                    traccePassantiOrdinate, tracceNonPassantiOrdinate,
                    latiBordo,latiInterni);
-/*
+
     //stampa bordo e interni
     cout<<"lati bordo"<<endl;
     for(auto& e: latiBordo){
@@ -124,12 +124,12 @@ int main()
         cout<<endl;
     }
 
-*/
+    cout<<"!!!!!!!!!!!!!!!!!!!!!!!!!"<<endl;
     PolygonalMesh mesh = {};
     vector<int> idBordo = {};
     vector<int> idInterno = {};
     CaricamentoCell0e1D(latiBordo,latiInterni, mesh, idBordo,idInterno);
-/*
+
     cout<<"NumberCell0D: "<<mesh.NumberCell0D<<endl;
     cout<<"Cell0id: "<<endl;
     for(auto& e: mesh.Cell0DId){
@@ -158,9 +158,10 @@ int main()
         cout<<e[0]<<"  "<<e[1]<<endl;
     }
 
-*/
+
 
     CaricamentoCell2D (mesh, idBordo, idInterno);
+
     cout<<"*****************************************"<<endl;
     cout<<"mesh.Cell2DId:"<<endl;
     for (auto& x : mesh.Cell2DId){

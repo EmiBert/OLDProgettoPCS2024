@@ -24,8 +24,8 @@ struct Fracture
 
 struct Traces
 {   int id = 0; ///< numero identificativo della traccia
-    int FractureID1 = {}; ///< numero identificativo della frattura 1
-    int FractureID2 = {}; ///< numero identificativo della frattura 2
+    int FractureID1 = -1; ///< numero identificativo della frattura 1
+    int FractureID2 = -1; ///< numero identificativo della frattura 2
     Vector3d P1 = {}; ///< P1 = estremo 1
     Vector3d P2 = {}; ///< P2 = estremo 2
     bool Tips1 = {}; ///< Tips1 falso se la traccia è passante rispetto alla frattura ID1, vero se è non-passante

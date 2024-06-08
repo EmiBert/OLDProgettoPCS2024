@@ -143,7 +143,9 @@ void LatoSuccessivo(Vector3d& CurrentEdgeTan,
                     int& inverti,
                     bool& chiuso,
                     PolygonalMesh mesh,
-                    Vector3d N);
+                    Vector3d N,
+                    vector<int>& idBordo,
+                    vector<int>& idInterno);
 
 
 void CaricamentoCell2D (PolygonalMesh& mesh,
